@@ -8,6 +8,7 @@ var indexRouter = require("./routes/index");
 var usersRouter = require("./routes/users");
 var authRouter = require("./routes/auth");
 
+require("dotenv").config();
 var app = express();
 
 var { mongoConnect } = require("./mongo.js");
