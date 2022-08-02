@@ -53,7 +53,7 @@ router.post("/login-user", async (req, res) => {
     }
     const match = await bcrypt.compare(password, user.password);
     if (match) {
-      const jwtSecretKey = process.env.JWT_SECRET_KEY;
+      const jwtSecretKey = process.env.REACT_APP_JWT_SECRET_KEY;
       const data = {
         time: new Date(),
         userId: user.uid,
@@ -69,8 +69,8 @@ router.post("/login-user", async (req, res) => {
 });
 
 router.get("/auth/validate-token", (req, res) => {
-  const tokenHeaderKey = process.env.TOKEN_HEADER_KEY;
-  const jwtSecretKey = process.env.JWT_SECRET_KEY;
+  const tokenHeaderKey = process.env.REACT_APP_TOKEN_HEADER_KEY;
+  const jwtSecretKey = process.env.REACT_APP_JWT_SECRET_KEY;
 
   try {
     const token = req.header(tokenHeaderKey);
