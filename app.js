@@ -6,13 +6,12 @@ var logger = require("morgan");
 
 var indexRouter = require("./routes/index");
 var usersRouter = require("./routes/users");
+var authRouter = require("./routes/auth");
 
 var app = express();
 
 var { mongoConnect } = require("./mongo.js");
 mongoConnect();
-
-var authRouter = require("./routes/auth");
 
 //enable cors
 const cors = require("cors");

@@ -6,6 +6,8 @@ const bcrypt = require("bcryptjs");
 const { uuid } = require("uuidv4");
 const { triClubDb } = require("../mongo");
 
+dotenv.config();
+
 const createUser = async (username, passwordHash) => {
   try {
     const collection = await triClubDb().collection("users");
