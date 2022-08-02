@@ -4,13 +4,13 @@ var express = require("express");
 var router = express.Router();
 const bcrypt = require("bcryptjs");
 const { uuid } = require("uuidv4");
-const { triClubDb } = require("../mongo");
+const { triclubDb } = require("../mongo");
 
 dotenv.config();
 
 const createUser = async (username, passwordHash) => {
   try {
-    const collection = await triClubDb().collection("users");
+    const collection = await triclubDb().collection("users");
     const user = {
       username: username,
       password: passwordHash,
@@ -43,7 +43,7 @@ router.post("/login-user", async (req, res) => {
   try {
     const username = req.body.username;
     const password = req.body.password;
-    const collection = await triClubDb().collection("users");
+    const collection = await triclubDb().collection("users");
     const user = await collection.findOne({
       username: username,
     });
