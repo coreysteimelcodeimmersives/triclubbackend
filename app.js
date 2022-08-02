@@ -14,7 +14,7 @@ var app = express();
 var { mongoConnect } = require("./mongo.js");
 mongoConnect();
 
-//enable cors
+//enable cors -- cors
 const cors = require("cors");
 app.use(cors());
 app.options("*", cors());
