@@ -11,6 +11,7 @@ async function mongoConnect() {
     db = await client.db(process.env.REACT_APP_MONGO_DATABASE);
     console.log("db connected");
   } catch (error) {
+    console.log("db NOT CONNECTED!");
     console.error(error);
   }
 }
