@@ -19,4 +19,5 @@ async function mongoConnect() {
 function triclubDb() {
   return db;
 }
+
 module.exports = { mongoConnect, triclubDb };
