@@ -8,6 +8,52 @@ const { triclubDb } = require("../mongo");
 
 dotenv.config();
 
+const saltHashPassword = async (password) => {
+  try {
+    const saltRounds = 5;
+    const salt = await bcrypt.genSalt(saltRounds);
+    const hash = await bcrypt.hash(password, salt);
+    return { success: true, hash: hash };
+  } catch (error) {
+    return { success: false, message: error };
+  }
+};
+
+const becomePendingCoach = async (coachObj) => {
+  try {
+    const collection = await triclubDb().collection("users");
+    const newCoach = { ...coachObj, uuid: uuid(), userType: "pendingCoach" };
+    await collection.insertOne(newCoach);
+    return { success: true, coach: newCoach };
+  } catch (error) {
+    console.log(error);
+    return false;
+  }
+};
+
+router.post("/become-coach", async (req, res) => {
+  try {
+    const coachObj = req.body;
+    const sPassword = await saltHashPassword(coachObj.password);
+    let isPendingCoach = { success: false, coach: {} };
+    if (sPassword.success) {
+      isPendingCoach = await becomePendingCoach(coachObj);
+    }
+    if (isPendingCoach.success) {
+      return res
+        .json({
+          success: isPendingCoach.success,
+          coach: isPendingCoach.coach,
+        })
+        .status(200);
+    }
+    return;
+  } catch (error) {
+    console.log(error);
+    return res.json({ success: error }).status(500);
+  }
+});
+
 const createUser = async (username, passwordHash) => {
   try {
     const collection = await triclubDb().collection("users");
@@ -35,7 +81,7 @@ router.post("/register-user", async (req, res) => {
     res.json({ success: userSaveSuccess }).status(200);
   } catch (error) {
     console.error(error);
-    res.json({ success: error }).status(500);
+    return res.json({ success: error }).status(500);
   }
 });
 
@@ -64,7 +110,7 @@ router.post("/login-user", async (req, res) => {
     }
     res.json({ success: false }).status(204);
   } catch (error) {
-    res.json({ success: error }).status(500);
+    return res.json({ success: error }).status(500);
   }
 });
 
