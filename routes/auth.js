@@ -24,7 +24,7 @@ const createUser = async (username, passwordHash) => {
   }
 };
 
-router.post("/register-user", async (req, res) => {
+router.post("/sign-up-user", async (req, res) => {
   try {
     const username = req.body.username;
     const password = req.body.password;
