@@ -19,10 +19,15 @@ const saltHashPassword = async (password) => {
   }
 };
 
-const becomePendingCoach = async (coachObj) => {
+const becomePendingCoach = async (coachObj, hash) => {
   try {
     const collection = await triclubDb().collection("users");
-    const newCoach = { ...coachObj, uuid: uuid(), userType: "pendingCoach" };
+    const newCoach = {
+      ...coachObj,
+      uuid: uuid(),
+      userType: "pendingCoach",
+      password: hash,
+    };
     await collection.insertOne(newCoach);
     return { success: true, coach: newCoach };
   } catch (error) {
@@ -36,8 +41,9 @@ router.post("/become-coach", async (req, res) => {
     const coachObj = req.body;
     const sPassword = await saltHashPassword(coachObj.password);
     let isPendingCoach = { success: false, coach: {} };
+
     if (sPassword.success) {
-      isPendingCoach = await becomePendingCoach(coachObj);
+      isPendingCoach = await becomePendingCoach(coachObj, sPassword.hash);
     }
     if (isPendingCoach.success) {
       return res
@@ -54,13 +60,14 @@ router.post("/become-coach", async (req, res) => {
   }
 });
 
-const createUser = async (username, passwordHash) => {
+const createUser = async (email, passwordHash) => {
   try {
     const collection = await triclubDb().collection("users");
     const user = {
-      username: username,
+      email: email,
       password: passwordHash,
       uid: uuid(),
+      userType: "user",
     };
     await collection.insertOne(user);
     return true;
@@ -72,12 +79,12 @@ const createUser = async (username, passwordHash) => {
 
 router.post("/sign-up-user", async (req, res) => {
   try {
-    const username = req.body.username;
+    const email = req.body.email;
     const password = req.body.password;
     const saltRounds = 5;
     const salt = await bcrypt.genSalt(saltRounds);
     const hash = await bcrypt.hash(password, salt);
-    const userSaveSuccess = await createUser(username, hash);
+    const userSaveSuccess = await createUser(email, hash);
     res.json({ success: userSaveSuccess }).status(200);
   } catch (error) {
     console.error(error);
@@ -87,11 +94,11 @@ router.post("/sign-up-user", async (req, res) => {
 
 router.post("/login-user", async (req, res) => {
   try {
-    const username = req.body.username;
+    const email = req.body.email;
     const password = req.body.password;
     const collection = await triclubDb().collection("users");
     const user = await collection.findOne({
-      username: username,
+      email: email,
     });
     if (!user) {
       res.json({ success: false }).status(204);
@@ -104,8 +111,10 @@ router.post("/login-user", async (req, res) => {
         time: new Date(),
         userId: user.uid,
       };
+      const userType = user.userType;
       const token = jwt.sign(data, jwtSecretKey);
-      res.json({ success: match, token: token }).status(200);
+      console.log(token);
+      res.json({ success: true, token: token, userType: userType }).status(200);
       return;
     }
     res.json({ success: false }).status(204);
