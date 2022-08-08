@@ -5,6 +5,7 @@ var router = express.Router();
 const bcrypt = require("bcryptjs");
 const { uuid } = require("uuidv4");
 const { triclubDb } = require("../mongo");
+const { serverCheckUserIsValid } = require("../utils/validation");
 
 dotenv.config();
 
@@ -77,9 +78,42 @@ const createUser = async (email, passwordHash) => {
   }
 };
 
+const checkUniqueEmail = async (email) => {
+  try {
+    const collection = await triclubDb().collection("users");
+    const user = await collection.findOne({
+      email: email,
+    });
+    if (user) {
+      console.log("email in use");
+      const obj = { success: false, message: "Email already in use." };
+      return obj;
+    }
+    return { success: true };
+  } catch (error) {
+    return false;
+  }
+};
+
 router.post("/sign-up-user", async (req, res) => {
   try {
+    const userIsValid = serverCheckUserIsValid(req.body);
+    if (!userIsValid) {
+      console.log("user is not valid");
+      res.json({
+        success: false,
+        message: "Enter valid email & password.",
+      });
+      return;
+    }
     const email = req.body.email;
+    const uniqueEmail = await checkUniqueEmail(email);
+    if (!uniqueEmail.success) {
+      console.log("email in use. block");
+      console.log(uniqueEmail.message);
+      res.json(uniqueEmail).status(204);
+      return;
+    }
     const password = req.body.password;
     const saltRounds = 5;
     const salt = await bcrypt.genSalt(saltRounds);
@@ -94,8 +128,19 @@ router.post("/sign-up-user", async (req, res) => {
 
 router.post("/login-user", async (req, res) => {
   try {
+    const userIsValid = serverCheckUserIsValid(req.body);
+    if (!userIsValid) {
+      console.log("user is not valid");
+      res.json({
+        success: false,
+        message: "Enter valid email & password.",
+      });
+      return;
+    }
     const email = req.body.email;
+    console.log(email);
     const password = req.body.password;
+    console.log(password);
     const collection = await triclubDb().collection("users");
     const user = await collection.findOne({
       email: email,
