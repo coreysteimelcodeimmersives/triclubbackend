@@ -109,9 +109,9 @@ const checkUniqueEmail = async (email) => {
 
 router.post("/sign-up-user", async (req, res) => {
   try {
+
     const userIsValid = serverCheckUserIsValid(req.body);
     if (!userIsValid) {
-      console.log("user is not valid");
       res.json({
         success: false,
         message: "Enter valid email & password.",
@@ -121,8 +121,7 @@ router.post("/sign-up-user", async (req, res) => {
     const email = req.body.email;
     const uniqueEmail = await checkUniqueEmail(email);
     if (!uniqueEmail.success) {
-      console.log("email in use. block");
-      console.log(uniqueEmail.message);
+
       res.json(uniqueEmail).status(204);
       return;
     }
@@ -147,8 +146,7 @@ const findUser = async (email) => {
     if (!user) {
       return { success: false };
     }
-    console.log("find user");
-    console.log(user);
+
     return { success: true, user: user };
   } catch (error) {
     return error;
@@ -189,14 +187,15 @@ router.post("/login-user", async (req, res) => {
       const data = {
         time: new Date(),
         userId: user.uid,
+        userType: user.userType,
       };
       const userType = user.userType;
       const token = jwt.sign(data, jwtSecretKey);
-      console.log(token);
-      res.json({ success: true, token: token, userType: userType }).status(200);
+
+      res.json({ success: true, token: token }).status(200);
       return;
     }
-    res.json({ success: false }).status(204);
+    return res.json({ success: false }).status(204);
   } catch (error) {
     return res.json({ success: error }).status(500);
   }
@@ -304,6 +303,61 @@ router.get("/auth/validate-token", (req, res) => {
   } catch (error) {
     // Access Denied
     return res.status(401).json({ success: true, message: String(error) });
+  }
+});
+
+router.get("/validate-admin", (req, res) => {
+  console.log("pre-try log");
+  try {
+    const jwtSecretKey = process.env.REACT_APP_JWT_SECRET_KEY;
+    console.log("JWT: " + jwtSecretKey);
+    const token = req.headers.token;
+    console.log("token: " + token);
+    const verified = jwt.verify(token, jwtSecretKey);
+    console.log(verified);
+    if (!verified) {
+      return res.json({ success: false, isAdmin: false });
+    }
+
+    if (verified && verified.userType === "admin") {
+      return res.json({
+        success: true,
+        isAdmin: true,
+      });
+    } else {
+      return res.json({
+        success: true,
+        isAdmin: false,
+        verified: verified.data,
+      });
+    }
+  } catch (error) {
+    // Access Denied
+    return res.status(401).json({ success: false, message: error });
+  }
+});
+
+router.get("/validate-coach", (req, res) => {
+  try {
+    const jwtSecretKey = process.env.REACT_APP_JWT_SECRET_KEY;
+    const token = req.headers.token;
+    const verified = jwt.verify(token, jwtSecretKey);
+
+    if (!verified) {
+      return res.json({ success: false, isCoach: false });
+    }
+
+    if (verified && verified.userType === "coach") {
+      return res.json({
+        success: true,
+        isCoach: true,
+      });
+    } else {
+      return res.json({ success: true, isCoach: false });
+    }
+  } catch (error) {
+    // Access Denied
+    return res.status(401).json({ success: false, message: error });
   }
 });
 
