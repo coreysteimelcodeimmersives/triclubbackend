@@ -104,10 +104,10 @@ router.post("/login-user", async (req, res) => {
       const data = {
         time: new Date(),
         userId: user.uid,
+        userType: user.userType,
       };
-      const userType = user.userType;
       const token = jwt.sign(data, jwtSecretKey);
-      res.json({ success: true, token: token, userType: userType }).status(200);
+      res.json({ success: true, token: token }).status(200);
       return;
     }
     res.json({ success: false }).status(204);
@@ -133,6 +133,61 @@ router.get("/auth/validate-token", (req, res) => {
   } catch (error) {
     // Access Denied
     return res.status(401).json({ success: true, message: String(error) });
+  }
+});
+
+router.get("/validate-admin", (req, res) => {
+  console.log("pre-try log");
+  try {
+    const jwtSecretKey = process.env.REACT_APP_JWT_SECRET_KEY;
+    console.log("JWT: " + jwtSecretKey);
+    const token = req.headers.token;
+    console.log("token: " + token);
+    const verified = jwt.verify(token, jwtSecretKey);
+    console.log(verified);
+    if (!verified) {
+      return res.json({ success: false, isAdmin: false });
+    }
+
+    if (verified && verified.userType === "admin") {
+      return res.json({
+        success: true,
+        isAdmin: true,
+      });
+    } else {
+      return res.json({
+        success: true,
+        isAdmin: false,
+        verified: verified.data,
+      });
+    }
+  } catch (error) {
+    // Access Denied
+    return res.status(401).json({ success: false, message: error });
+  }
+});
+
+router.get("/validate-coach", (req, res) => {
+  try {
+    const jwtSecretKey = process.env.REACT_APP_JWT_SECRET_KEY;
+    const token = req.headers.token;
+    const verified = jwt.verify(token, jwtSecretKey);
+
+    if (!verified) {
+      return res.json({ success: false, isCoach: false });
+    }
+
+    if (verified && verified.userType === "coach") {
+      return res.json({
+        success: true,
+        isCoach: true,
+      });
+    } else {
+      return res.json({ success: true, isCoach: false });
+    }
+  } catch (error) {
+    // Access Denied
+    return res.status(401).json({ success: false, message: error });
   }
 });
 
