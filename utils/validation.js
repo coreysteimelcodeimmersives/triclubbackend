@@ -16,4 +16,15 @@ const serverCheckUserIsValid = (reqBody) => {
   return true;
 };
 
-module.exports = { serverCheckUserIsValid };
+const serverCheckEmailIsValid = (reqBody) => {
+  if (
+    !reqBody.hasOwnProperty("email") ||
+    !reqBody.email === "string" ||
+    reqBody.email < 1
+  ) {
+    return false;
+  }
+  return true;
+};
+
+module.exports = { serverCheckUserIsValid, serverCheckEmailIsValid };
