@@ -109,7 +109,6 @@ const checkUniqueEmail = async (email) => {
 
 router.post("/sign-up-user", async (req, res) => {
   try {
-
     const userIsValid = serverCheckUserIsValid(req.body);
     if (!userIsValid) {
       res.json({
@@ -121,7 +120,6 @@ router.post("/sign-up-user", async (req, res) => {
     const email = req.body.email;
     const uniqueEmail = await checkUniqueEmail(email);
     if (!uniqueEmail.success) {
-
       res.json(uniqueEmail).status(204);
       return;
     }
@@ -157,7 +155,6 @@ router.post("/login-user", async (req, res) => {
   try {
     const userIsValid = serverCheckUserIsValid(req.body);
     if (!userIsValid) {
-      console.log("user is not valid");
       res.json({
         success: false,
         message: "Enter valid email & password.",
@@ -165,7 +162,6 @@ router.post("/login-user", async (req, res) => {
       return;
     }
     const email = req.body.email;
-    console.log(email);
     const password = req.body.password;
     console.log(password);
     const findUserObj = await findUser(email);
@@ -173,14 +169,12 @@ router.post("/login-user", async (req, res) => {
       res
         .json({
           success: false,
-          message: "We did not find that email, please try again.",
+          message: "We did not find that email.",
         })
         .status(204);
       return;
     }
     const user = findUserObj.user;
-    console.log("log in user func");
-    console.log(user);
     const match = await bcrypt.compare(password, user.password);
     if (match) {
       const jwtSecretKey = process.env.REACT_APP_JWT_SECRET_KEY;
@@ -189,13 +183,18 @@ router.post("/login-user", async (req, res) => {
         userId: user.uid,
         userType: user.userType,
       };
-      const userType = user.userType;
+      // const userType = user.userType;
       const token = jwt.sign(data, jwtSecretKey);
 
       res.json({ success: true, token: token }).status(200);
       return;
     }
-    return res.json({ success: false }).status(204);
+    return res
+      .json({
+        success: false,
+        message: "Wrong email or password.",
+      })
+      .status(204);
   } catch (error) {
     return res.json({ success: error }).status(500);
   }
