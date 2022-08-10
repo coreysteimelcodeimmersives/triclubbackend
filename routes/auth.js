@@ -183,7 +183,6 @@ router.post("/login-user", async (req, res) => {
         userId: user.uid,
         userType: user.userType,
       };
-      // const userType = user.userType;
       const token = jwt.sign(data, jwtSecretKey);
 
       res.json({ success: true, token: token }).status(200);
