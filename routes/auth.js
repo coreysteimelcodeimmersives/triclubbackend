@@ -109,7 +109,6 @@ const checkUniqueEmail = async (email) => {
 
 router.post("/sign-up-user", async (req, res) => {
   try {
-
     const userIsValid = serverCheckUserIsValid(req.body);
     if (!userIsValid) {
       res.json({
@@ -121,7 +120,6 @@ router.post("/sign-up-user", async (req, res) => {
     const email = req.body.email;
     const uniqueEmail = await checkUniqueEmail(email);
     if (!uniqueEmail.success) {
-
       res.json(uniqueEmail).status(204);
       return;
     }
@@ -195,7 +193,12 @@ router.post("/login-user", async (req, res) => {
       res.json({ success: true, token: token }).status(200);
       return;
     }
-    return res.json({ success: false }).status(204);
+    return res
+      .json({
+        success: false,
+        message: "Wrong email and/or password, please try again.",
+      })
+      .status(204);
   } catch (error) {
     return res.json({ success: error }).status(500);
   }
