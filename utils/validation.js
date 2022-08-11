@@ -27,4 +27,19 @@ const serverCheckEmailIsValid = (reqBody) => {
   return true;
 };
 
-module.exports = { serverCheckUserIsValid, serverCheckEmailIsValid };
+const serverCheckPasswordIsValid = (reqBody) => {
+  if (
+    !reqBody.hasOwnProperty("password") ||
+    !reqBody.password === "string" ||
+    reqBody.password < 1
+  ) {
+    return false;
+  }
+  return true;
+};
+
+module.exports = {
+  serverCheckUserIsValid,
+  serverCheckEmailIsValid,
+  serverCheckPasswordIsValid,
+};

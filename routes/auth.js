@@ -10,6 +10,7 @@ const { triclubDb } = require("../mongo");
 const {
   serverCheckUserIsValid,
   serverCheckEmailIsValid,
+  serverCheckPasswordIsValid,
 } = require("../utils/validation");
 const { env } = require("process");
 
@@ -20,17 +21,6 @@ dotenv.config();
 
 //LOCAL
 const urlEndpoint = process.env.REACT_APP_URL_ENDPOINT;
-
-const saltHashPassword = async (password) => {
-  try {
-    const saltRounds = 5;
-    const salt = await bcrypt.genSalt(saltRounds);
-    const hash = await bcrypt.hash(password, salt);
-    return { success: true, hash: hash };
-  } catch (error) {
-    return { success: false, message: error };
-  }
-};
 
 const becomePendingCoach = async (coachObj, hash) => {
   try {
@@ -50,14 +40,15 @@ const becomePendingCoach = async (coachObj, hash) => {
 };
 
 router.post("/become-coach", async (req, res) => {
+  // *** I NEED TO RE - WORK THIS BC THE USER IS ALREADY LOGGED IN ***
+  // *** I NEED TO WRITE VALIDATION FOR THE COACH REQ.BODY ***
   try {
     const coachObj = req.body;
-    const sPassword = await saltHashPassword(coachObj.password);
+
     let isPendingCoach = { success: false, coach: {} };
 
-    if (sPassword.success) {
-      isPendingCoach = await becomePendingCoach(coachObj, sPassword.hash);
-    }
+    isPendingCoach = await becomePendingCoach(coachObj, sPassword.hash);
+
     if (isPendingCoach.success) {
       return res
         .json({
@@ -103,7 +94,19 @@ const checkUniqueEmail = async (email) => {
     }
     return { success: true };
   } catch (error) {
-    return false;
+    return { success: false, message: error };
+  }
+};
+
+const saltHashPassword = async (password) => {
+  try {
+    const saltRounds = 5;
+    const salt = await bcrypt.genSalt(saltRounds);
+    const hash = await bcrypt.hash(password, salt);
+    return { success: true, hash: hash };
+  } catch (error) {
+    console.log(error);
+    return { success: false };
   }
 };
 
@@ -111,35 +114,49 @@ router.post("/sign-up-user", async (req, res) => {
   try {
     const userIsValid = serverCheckUserIsValid(req.body);
     if (!userIsValid) {
-      res.json({
-        success: false,
-        message: "Enter valid email & password.",
-      });
+      res
+        .json({
+          success: false,
+          message: "Enter valid email & password.",
+        })
+        .status(403);
       return;
     }
     const email = req.body.email;
     const uniqueEmail = await checkUniqueEmail(email);
     if (!uniqueEmail.success) {
-      res.json(uniqueEmail).status(204);
+      res.json(uniqueEmail).status(409);
       return;
     }
     const password = req.body.password;
-    const saltRounds = 5;
-    const salt = await bcrypt.genSalt(saltRounds);
-    const hash = await bcrypt.hash(password, salt);
+    const sPassword = await saltHashPassword(password);
+    if (!sPassword.success) {
+      return res
+        .json({
+          succes: false,
+          message: "There was a problem, please try again.",
+        })
+        .status(503);
+    }
+    const hash = sPassword.hash;
     const userSaveSuccess = await createUser(email, hash);
-    res.json({ success: userSaveSuccess }).status(200);
+    if (!userSaveSuccess) {
+      res
+        .json({ succes: false, message: "There was a problem, please" })
+        .status(409);
+    }
+    return res.json({ success: userSaveSuccess }).status(200);
   } catch (error) {
     console.error(error);
     return res.json({ success: error }).status(500);
   }
 });
 
-const findUser = async (email) => {
+const findUserByKey = async (key, value) => {
   try {
     const collection = await triclubDb().collection("users");
     const user = await collection.findOne({
-      email: email,
+      [key]: value,
     });
     if (!user) {
       return { success: false };
@@ -155,23 +172,24 @@ router.post("/login-user", async (req, res) => {
   try {
     const userIsValid = serverCheckUserIsValid(req.body);
     if (!userIsValid) {
-      res.json({
-        success: false,
-        message: "Enter valid email & password.",
-      });
+      res
+        .json({
+          success: false,
+          message: "Enter valid email & password.",
+        })
+        .status(403);
       return;
     }
     const email = req.body.email;
     const password = req.body.password;
-    console.log(password);
-    const findUserObj = await findUser(email);
+    const findUserObj = await findUserByKey("email", email);
     if (!findUserObj.success) {
       res
         .json({
           success: false,
           message: "We did not find that email.",
         })
-        .status(204);
+        .status(406);
       return;
     }
     const user = findUserObj.user;
@@ -193,31 +211,37 @@ router.post("/login-user", async (req, res) => {
         success: false,
         message: "Wrong email or password.",
       })
-      .status(204);
+      .status(406);
   } catch (error) {
-    return res.json({ success: error }).status(500);
+    return res
+      .json({
+        success: false,
+        message: "There was an error, please try again.",
+      })
+      .status(500);
   }
 });
 
-router.post("/forgot-password", async (req, res) => {
+router.put("/forgot-password", async (req, res) => {
   try {
     const emailIsValid = serverCheckEmailIsValid(req.body);
     if (!emailIsValid) {
-      res.json({ success: false, message: "Enter a valid email." });
+      res.json({ success: false, message: "Enter a valid email." }).status(403);
       return;
     }
     const email = req.body.email;
-    const findUserObj = await findUser(email);
+    const findUserObj = await findUserByKey("email", email);
     if (!findUserObj.success) {
-      res.json({
-        success: false,
-        message: "We did not find that email, please try again.",
-      });
+      res
+        .json({
+          success: false,
+          message: "We did not find that email, please try again.",
+        })
+        .status(406);
     }
     const user = findUserObj.user;
     const token = crypto.randomBytes(20).toString("hex");
-    console.log("token");
-    console.log(token);
+
     const collection = await triclubDb().collection("users");
     var date1 = new Date();
     var dateToMilliseconds = date1.getTime();
@@ -225,21 +249,17 @@ router.post("/forgot-password", async (req, res) => {
     //This will add 1 hour1 to our time.
     var newDate = new Date(addedHours);
     //This will create a new date that will be 1 hour1 ahead of the current date
-    console.log("date");
-    console.log(newDate);
 
     await collection.updateOne(
       { email: email },
       {
         $set: {
           ...user,
-          resetPaswordToken: token,
-          resetPssswordExpires: newDate,
+          resetPasswordToken: token,
+          resetPasswordExpires: newDate,
         },
       }
     );
-
-    console.log("yo!");
 
     const transporter = nodemailer.createTransport({
       service: "gmail",
@@ -250,8 +270,6 @@ router.post("/forgot-password", async (req, res) => {
       },
     });
 
-    console.log("before mail options ");
-
     const mailOptions = {
       from: "trishopoffice@gmail.com",
       to: `${user.email}`,
@@ -259,11 +277,9 @@ router.post("/forgot-password", async (req, res) => {
       text:
         `You are recieving this because you (or someone else) have requested to reset your TriClub account password.\n\n` +
         `Please click on the following link, or paste this into your browser to complete the process within one hour of receiving it:\n\n` +
-        `${urlEndpoint}/reset-password/${token}\n\n` +
+        `${urlEndpoint}/reset-password?rpt=${token}\n\n` +
         `If you did not request this, please ignore this email and your password will remain unchanged.\n`,
     };
-
-    console.log("sending email");
 
     transporter.sendMail(mailOptions, (err, response) => {
       if (err) {
@@ -276,62 +292,143 @@ router.post("/forgot-password", async (req, res) => {
         });
       }
     });
-
-    // await nodeMailerFunc();
   } catch (error) {
     console.log(error);
     return res.json({ success: error }).status(500);
   }
 });
 
-router.get("/auth/validate-token", (req, res) => {
-  const tokenHeaderKey = process.env.REACT_APP_TOKEN_HEADER_KEY;
-  const jwtSecretKey = process.env.REACT_APP_JWT_SECRET_KEY;
-
+router.get("/validate-reset-password-token", async (req, res) => {
   try {
-    const token = req.header(tokenHeaderKey);
-
-    const verified = jwt.verify(token, jwtSecretKey);
-    if (verified) {
-      return res.json({ success: true });
-    } else {
-      // Access Denied
-      throw Error("Access Denied");
+    const rpt = req.headers.rpt;
+    const resetRequestee = await findUserByKey("resetPasswordToken", rpt);
+    if (!resetRequestee.success) {
+      console.log("we didnt find one");
+      return res.json({ success: false }).status(406);
     }
+    if (resetRequestee.success) {
+      console.log("we found one!");
+      console.log(resetRequestee.user);
+      const user = resetRequestee.user;
+      date = new Date();
+      expDate = user.resetPasswordExpires;
+      if (date.getTime() <= expDate.getTime()) {
+        console.log("the current date is less than the exp date");
+        return res.json({ success: true }).status(200);
+      }
+    }
+    console.log("something didnt work right. or the token is exp");
+    return res.json({ success: false }).status(401);
   } catch (error) {
-    // Access Denied
-    return res.status(401).json({ success: true, message: String(error) });
+    console.log(error);
+    return res.status(500).json({ success: false, messge: error });
   }
 });
 
+router.put("/reset-password", async (req, res) => {
+  try {
+    const password = req.body.password;
+    const passCheck = serverCheckPasswordIsValid(req.body);
+    if (!passCheck) {
+      return res
+        .json({ success: false, message: "Not a valid password" })
+        .status(403);
+    }
+    const rpt = req.body.rpt;
+    const sPassword = await saltHashPassword(password);
+    if (!sPassword.success) {
+      return res
+        .json({
+          succes: false,
+          message: "There was a problem, please try again.",
+        })
+        .status(503);
+    }
+    const hash = sPassword.hash;
+    const resetRequestee = await findUserByKey("resetPasswordToken", rpt);
+    if (!resetRequestee.success) {
+      res
+        .json({
+          success: false,
+          message: "We did not find that user.",
+        })
+        .status(406);
+      return;
+    }
+    console.log("did we make it here.");
+    const user = resetRequestee.user;
+    const updateUser = {
+      ...user,
+      password: hash,
+    };
+    const collection = await triclubDb().collection("users");
+    await collection.updateOne(
+      { resetPasswordToken: rpt },
+      {
+        $set: {
+          ...updateUser,
+          resetPasswordToken: null,
+          resetPasswordExpires: null,
+        },
+      }
+    );
+    console.log("made it past the update");
+    return res
+      .json({ success: true, message: "password reset success" })
+      .status(200);
+  } catch (error) {
+    res.json({ success: false, message: error }).status(500);
+  }
+});
+
+// router.get("/auth/validate-token", (req, res) => {
+//   const tokenHeaderKey = process.env.REACT_APP_TOKEN_HEADER_KEY;
+//   const jwtSecretKey = process.env.REACT_APP_JWT_SECRET_KEY;
+
+//   try {
+//     const token = req.header(tokenHeaderKey);
+
+//     const verified = jwt.verify(token, jwtSecretKey);
+//     if (verified) {
+//       return res.json({ success: true });
+//     } else {
+//       // Access Denied
+//       throw Error("Access Denied");
+//     }
+//   } catch (error) {
+//     // Access Denied
+//     return res.status(401).json({ success: true, message: String(error) });
+//   }
+// });
+
 router.get("/validate-admin", (req, res) => {
-  console.log("pre-try log");
   try {
     const jwtSecretKey = process.env.REACT_APP_JWT_SECRET_KEY;
-    console.log("JWT: " + jwtSecretKey);
     const token = req.headers.token;
-    console.log("token: " + token);
     const verified = jwt.verify(token, jwtSecretKey);
-    console.log(verified);
     if (!verified) {
-      return res.json({ success: false, isAdmin: false });
+      return res.json({ success: false, isAdmin: false }).status(401);
     }
 
     if (verified && verified.userType === "admin") {
-      return res.json({
-        success: true,
-        isAdmin: true,
-      });
+      return res
+        .json({
+          success: true,
+          isAdmin: true,
+        })
+        .status(200);
     } else {
-      return res.json({
-        success: true,
-        isAdmin: false,
-        verified: verified.data,
-      });
+      return res
+        .json({
+          success: true,
+          isAdmin: false,
+          verified: verified.data,
+        })
+        .status(403);
     }
   } catch (error) {
     // Access Denied
-    return res.status(401).json({ success: false, message: error });
+    return res.status(500).json({ success: false, message: error });
   }
 });
 
@@ -342,20 +439,22 @@ router.get("/validate-coach", (req, res) => {
     const verified = jwt.verify(token, jwtSecretKey);
 
     if (!verified) {
-      return res.json({ success: false, isCoach: false });
+      return res.json({ success: false, isCoach: false }).status(401);
     }
 
     if (verified && verified.userType === "coach") {
-      return res.json({
-        success: true,
-        isCoach: true,
-      });
+      return res
+        .json({
+          success: true,
+          isCoach: true,
+        })
+        .status(200);
     } else {
-      return res.json({ success: true, isCoach: false });
+      return res.json({ success: true, isCoach: false }).status(403);
     }
   } catch (error) {
     // Access Denied
-    return res.status(401).json({ success: false, message: error });
+    return res.status(500).json({ success: false, message: error });
   }
 });
 
