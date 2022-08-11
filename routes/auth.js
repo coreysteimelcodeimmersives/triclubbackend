@@ -16,12 +16,6 @@ const { env } = require("process");
 
 dotenv.config();
 
-// Heroku
-// const urlEndpoint = process.env.REACT_APP_DATABASE_URL;
-
-//LOCAL
-const urlEndpoint = process.env.REACT_APP_URL_ENDPOINT;
-
 const becomePendingCoach = async (coachObj, hash) => {
   try {
     const collection = await triclubDb().collection("users");
@@ -257,7 +251,7 @@ router.put("/forgot-password", async (req, res) => {
       text:
         `You are recieving this because you (or someone else) have requested to reset your TriClub account password.\n\n` +
         `Please click on the following link, or paste this into your browser to complete the process within one hour of receiving it:\n\n` +
-        `${urlEndpoint}/reset-password?rpt=${token}\n\n` +
+        `${process.env.REACT_APP_URL_ENDPOINT}/reset-password?rpt=${token}\n\n` +
         `If you did not request this, please ignore this email and your password will remain unchanged.\n`,
     };
 
