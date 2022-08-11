@@ -34,7 +34,6 @@ const becomePendingCoach = async (coachObj, hash) => {
     await collection.insertOne(newCoach);
     return { success: true, coach: newCoach };
   } catch (error) {
-    console.log(error);
     return false;
   }
 };
@@ -50,17 +49,14 @@ router.post("/become-coach", async (req, res) => {
     isPendingCoach = await becomePendingCoach(coachObj, sPassword.hash);
 
     if (isPendingCoach.success) {
-      return res
-        .json({
-          success: isPendingCoach.success,
-          coach: isPendingCoach.coach,
-        })
-        .status(200);
+      return res.status(200).json({
+        success: isPendingCoach.success,
+        coach: isPendingCoach.coach,
+      });
     }
     return;
   } catch (error) {
-    console.log(error);
-    return res.json({ success: error }).status(500);
+    return res.status(500).json({ success: error });
   }
 });
 
@@ -88,7 +84,6 @@ const checkUniqueEmail = async (email) => {
       email: email,
     });
     if (user) {
-      console.log("email in use");
       const obj = { success: false, message: "Email already in use." };
       return obj;
     }
@@ -105,7 +100,6 @@ const saltHashPassword = async (password) => {
     const hash = await bcrypt.hash(password, salt);
     return { success: true, hash: hash };
   } catch (error) {
-    console.log(error);
     return { success: false };
   }
 };
@@ -114,41 +108,37 @@ router.post("/sign-up-user", async (req, res) => {
   try {
     const userIsValid = serverCheckUserIsValid(req.body);
     if (!userIsValid) {
-      res
-        .json({
-          success: false,
-          message: "Enter valid email & password.",
-        })
-        .status(403);
+      res.status(403).json({
+        success: false,
+        message: "Enter valid email & password.",
+      });
       return;
     }
     const email = req.body.email;
     const uniqueEmail = await checkUniqueEmail(email);
     if (!uniqueEmail.success) {
-      res.json(uniqueEmail).status(409);
+      res.status(409).json(uniqueEmail);
       return;
     }
     const password = req.body.password;
     const sPassword = await saltHashPassword(password);
     if (!sPassword.success) {
-      return res
-        .json({
-          succes: false,
-          message: "There was a problem, please try again.",
-        })
-        .status(503);
+      return res.status(503).json({
+        succes: false,
+        message: "There was a problem, please try again.",
+      });
     }
     const hash = sPassword.hash;
     const userSaveSuccess = await createUser(email, hash);
     if (!userSaveSuccess) {
       res
-        .json({ succes: false, message: "There was a problem, please" })
-        .status(409);
+        .status(409)
+        .json({ succes: false, message: "There was a problem, please" });
     }
-    return res.json({ success: userSaveSuccess }).status(200);
+    return res.status(200).json({ success: userSaveSuccess });
   } catch (error) {
     console.error(error);
-    return res.json({ success: error }).status(500);
+    return res.status(500).json({ success: error });
   }
 });
 
@@ -172,24 +162,20 @@ router.post("/login-user", async (req, res) => {
   try {
     const userIsValid = serverCheckUserIsValid(req.body);
     if (!userIsValid) {
-      res
-        .json({
-          success: false,
-          message: "Enter valid email & password.",
-        })
-        .status(403);
+      res.status(403).json({
+        success: false,
+        message: "Enter valid email & password.",
+      });
       return;
     }
     const email = req.body.email;
     const password = req.body.password;
     const findUserObj = await findUserByKey("email", email);
     if (!findUserObj.success) {
-      res
-        .json({
-          success: false,
-          message: "We did not find that email.",
-        })
-        .status(406);
+      res.status(406).json({
+        success: false,
+        message: "We did not find that email.",
+      });
       return;
     }
     const user = findUserObj.user;
@@ -203,22 +189,18 @@ router.post("/login-user", async (req, res) => {
       };
       const token = jwt.sign(data, jwtSecretKey);
 
-      res.json({ success: true, token: token }).status(200);
+      res.status(200).json({ success: true, token: token });
       return;
     }
-    return res
-      .json({
-        success: false,
-        message: "Wrong email or password.",
-      })
-      .status(406);
+    return res.status(406).json({
+      success: false,
+      message: "Wrong email or password.",
+    });
   } catch (error) {
-    return res
-      .json({
-        success: false,
-        message: "There was an error, please try again.",
-      })
-      .status(500);
+    return res.status(500).json({
+      success: false,
+      message: "There was an error, please try again.",
+    });
   }
 });
 
@@ -226,18 +208,16 @@ router.put("/forgot-password", async (req, res) => {
   try {
     const emailIsValid = serverCheckEmailIsValid(req.body);
     if (!emailIsValid) {
-      res.json({ success: false, message: "Enter a valid email." }).status(403);
+      res.status(403).json({ success: false, message: "Enter a valid email." });
       return;
     }
     const email = req.body.email;
     const findUserObj = await findUserByKey("email", email);
     if (!findUserObj.success) {
-      res
-        .json({
-          success: false,
-          message: "We did not find that email, please try again.",
-        })
-        .status(406);
+      res.status(406).json({
+        success: false,
+        message: "We did not find that email, please try again.",
+      });
     }
     const user = findUserObj.user;
     const token = crypto.randomBytes(20).toString("hex");
@@ -282,19 +262,13 @@ router.put("/forgot-password", async (req, res) => {
     };
 
     transporter.sendMail(mailOptions, (err, response) => {
-      if (err) {
-        console.log("there was an error: ", err);
-      } else {
-        console.log("here is the res: ", response);
-        return res.status(200).json({
-          success: true,
-          message: "Reset Password link sent to your email address.",
-        });
-      }
+      return res.status(200).json({
+        success: true,
+        message: "Reset Password link sent to your email address.",
+      });
     });
   } catch (error) {
-    console.log(error);
-    return res.json({ success: error }).status(500);
+    return res.status(500).json({ success: error });
   }
 });
 
@@ -303,24 +277,19 @@ router.get("/validate-reset-password-token", async (req, res) => {
     const rpt = req.headers.rpt;
     const resetRequestee = await findUserByKey("resetPasswordToken", rpt);
     if (!resetRequestee.success) {
-      console.log("we didnt find one");
-      return res.json({ success: false }).status(406);
+      return res.status(406).json({ success: false });
     }
     if (resetRequestee.success) {
-      console.log("we found one!");
-      console.log(resetRequestee.user);
       const user = resetRequestee.user;
       date = new Date();
       expDate = user.resetPasswordExpires;
       if (date.getTime() <= expDate.getTime()) {
-        console.log("the current date is less than the exp date");
-        return res.json({ success: true }).status(200);
+        return res.status(200).json({ success: true });
       }
     }
-    console.log("something didnt work right. or the token is exp");
-    return res.json({ success: false }).status(401);
+
+    return res.status(401).json({ success: false });
   } catch (error) {
-    console.log(error);
     return res.status(500).json({ success: false, messge: error });
   }
 });
@@ -331,31 +300,27 @@ router.put("/reset-password", async (req, res) => {
     const passCheck = serverCheckPasswordIsValid(req.body);
     if (!passCheck) {
       return res
-        .json({ success: false, message: "Not a valid password" })
-        .status(403);
+        .status(403)
+        .json({ success: false, message: "Not a valid password" });
     }
     const rpt = req.body.rpt;
     const sPassword = await saltHashPassword(password);
     if (!sPassword.success) {
-      return res
-        .json({
-          succes: false,
-          message: "There was a problem, please try again.",
-        })
-        .status(503);
+      return res.status(503).json({
+        succes: false,
+        message: "There was a problem, please try again.",
+      });
     }
     const hash = sPassword.hash;
     const resetRequestee = await findUserByKey("resetPasswordToken", rpt);
     if (!resetRequestee.success) {
-      res
-        .json({
-          success: false,
-          message: "We did not find that user.",
-        })
-        .status(406);
+      res.status(406).json({
+        success: false,
+        message: "We did not find that user.",
+      });
       return;
     }
-    console.log("did we make it here.");
+
     const user = resetRequestee.user;
     const updateUser = {
       ...user,
@@ -372,12 +337,12 @@ router.put("/reset-password", async (req, res) => {
         },
       }
     );
-    console.log("made it past the update");
+
     return res
-      .json({ success: true, message: "password reset success" })
-      .status(200);
+      .status(200)
+      .json({ success: true, message: "password reset success" });
   } catch (error) {
-    res.json({ success: false, message: error }).status(500);
+    res.status(500).json({ success: false, message: error });
   }
 });
 
@@ -406,29 +371,22 @@ router.get("/validate-admin", (req, res) => {
     const jwtSecretKey = process.env.REACT_APP_JWT_SECRET_KEY;
     const token = req.headers.token;
     const verified = jwt.verify(token, jwtSecretKey);
-    if (!verified) {
-      return res.json({ success: false, isAdmin: false }).status(401);
-    }
 
     if (verified && verified.userType === "admin") {
-      return res
-        .json({
-          success: true,
-          isAdmin: true,
-        })
-        .status(200);
+      return res.status(200).json({
+        success: true,
+        isAdmin: true,
+      });
     } else {
-      return res
-        .json({
-          success: true,
-          isAdmin: false,
-          verified: verified.data,
-        })
-        .status(403);
+      return res.status(403).json({
+        success: true,
+        isAdmin: false,
+        verified: verified.data,
+      });
     }
   } catch (error) {
     // Access Denied
-    return res.status(500).json({ success: false, message: error });
+    return res.status(403).json({ success: false, message: error.message });
   }
 });
 
@@ -438,23 +396,17 @@ router.get("/validate-coach", (req, res) => {
     const token = req.headers.token;
     const verified = jwt.verify(token, jwtSecretKey);
 
-    if (!verified) {
-      return res.json({ success: false, isCoach: false }).status(401);
-    }
-
     if (verified && verified.userType === "coach") {
-      return res
-        .json({
-          success: true,
-          isCoach: true,
-        })
-        .status(200);
+      return res.status(200).json({
+        success: true,
+        isCoach: true,
+      });
     } else {
-      return res.json({ success: true, isCoach: false }).status(403);
+      return res.status(403).json({ success: true, isCoach: false });
     }
   } catch (error) {
     // Access Denied
-    return res.status(500).json({ success: false, message: error });
+    return res.status(403).json({ success: false, message: error.message });
   }
 });
 
