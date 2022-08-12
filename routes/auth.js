@@ -11,46 +11,61 @@ const {
   serverCheckUserIsValid,
   serverCheckEmailIsValid,
   serverCheckPasswordIsValid,
+  serverCheckCoachInfoIsValid,
 } = require("../utils/validation");
 const { env } = require("process");
 
 dotenv.config();
 
-const becomePendingCoach = async (coachObj, hash) => {
-  try {
-    const collection = await triclubDb().collection("users");
-    const newCoach = {
-      ...coachObj,
-      uuid: uuid(),
-      userType: "pendingCoach",
-      password: hash,
-    };
-    await collection.insertOne(newCoach);
-    return { success: true, coach: newCoach };
-  } catch (error) {
-    return false;
-  }
-};
-
 router.post("/become-coach", async (req, res) => {
   // *** I NEED TO RE - WORK THIS BC THE USER IS ALREADY LOGGED IN ***
   // *** I NEED TO WRITE VALIDATION FOR THE COACH REQ.BODY ***
   try {
-    const coachObj = req.body;
-
-    let isPendingCoach = { success: false, coach: {} };
-
-    isPendingCoach = await becomePendingCoach(coachObj, sPassword.hash);
-
-    if (isPendingCoach.success) {
-      return res.status(200).json({
-        success: isPendingCoach.success,
-        coach: isPendingCoach.coach,
+    const coachInfoIsValid = serverCheckCoachInfoIsValid(req.body);
+    if (!coachInfoIsValid) {
+      res.status(403).json({
+        success: false,
+        message: "Please enter all application fields.",
       });
+      return;
     }
-    return;
+    const coachInfo = req.body;
+    const token = req.headers.token;
+    const jwtSecretKey = process.env.REACT_APP_JWT_SECRET_KEY;
+    if (!token) {
+      return res
+        .status(500)
+        .json({ success: false, message: "no jwt token exists" });
+    }
+    const verified = jwt.verify(token, jwtSecretKey);
+    const pendingCoachObj = await findUserByKey("uid", verified.userId);
+    if (!pendingCoachObj.success) {
+      res.status(406).json({
+        success: false,
+        message: "We did not find your account.",
+      });
+      return;
+    }
+    const pendingCoachUser = pendingCoachObj.user;
+    const collection = await triclubDb().collection("users");
+    await collection.updateOne(
+      { uid: verified.userId },
+      {
+        $set: {
+          ...pendingCoachUser,
+          userType: "pendingCoach",
+          coachInfo: coachInfo,
+        },
+      }
+    );
+    return res.status(200).json({
+      success: true,
+      message:
+        "Thank you for applying. We will review your application and be in touch with you shortly.",
+    });
   } catch (error) {
-    return res.status(500).json({ success: error });
+    console.log(error);
+    return res.status(500).json({ success: false, message: String(error) });
   }
 });
 
@@ -83,7 +98,7 @@ const checkUniqueEmail = async (email) => {
     }
     return { success: true };
   } catch (error) {
-    return { success: false, message: error };
+    return { success: false, message: String(error) };
   }
 };
 
