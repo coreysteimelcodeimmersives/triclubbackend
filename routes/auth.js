@@ -17,9 +17,7 @@ const { env } = require("process");
 
 dotenv.config();
 
-router.post("/become-coach", async (req, res) => {
-  // *** I NEED TO RE - WORK THIS BC THE USER IS ALREADY LOGGED IN ***
-  // *** I NEED TO WRITE VALIDATION FOR THE COACH REQ.BODY ***
+router.put("/become-coach", async (req, res) => {
   try {
     const coachInfoIsValid = serverCheckCoachInfoIsValid(req.body);
     if (!coachInfoIsValid) {

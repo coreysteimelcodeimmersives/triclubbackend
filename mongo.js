@@ -20,5 +20,4 @@ function triclubDb() {
   return db;
 }
 
-//bullshit
 module.exports = { mongoConnect, triclubDb };
