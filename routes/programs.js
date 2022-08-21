@@ -5,6 +5,7 @@ const { triclubDb } = require("../mongo");
 const { env } = require("process");
 const { uuid } = require("uuidv4");
 dotenv.config();
+const { serverCheckProgramInfoIsValid } = require("../utils/validation");
 
 /* GET all programs. */
 router.get("/get-all-programs", async (req, res) => {
@@ -61,14 +62,14 @@ router.get("/delete-program", async (req, res) => {
 
 router.post("/submit-program", async (req, res) => {
   try {
-    // const programIsValid = serverCheckProgramIsValid(req.body);
-    // if (!programIsValid) {
-    //   res.status(403).json({
-    //     success: false,
-    //     message: "Enter valid program data.",
-    //   });
-    //   return;
-    // }
+    const programIsValid = serverCheckProgramInfoIsValid(req.body);
+    if (!programIsValid) {
+      res.status(403).json({
+        success: false,
+        message: "Enter valid program data.",
+      });
+      return;
+    }
     const collection = await triclubDb().collection("programs");
     const programData = req.body;
     const program = { ...programData, uid: uuid() };
@@ -76,7 +77,12 @@ router.post("/submit-program", async (req, res) => {
     return res.status(200).json({ success: true });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ success: error });
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Something went wrong. Please try again.",
+      });
   }
 });
 
