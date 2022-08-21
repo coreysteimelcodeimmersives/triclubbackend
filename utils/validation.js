@@ -38,6 +38,55 @@ const serverCheckPasswordIsValid = (reqBody) => {
   return true;
 };
 
+const serverCheckProgramInfoIsValid = (reqBody) => {
+  if (
+    !reqBody.hasOwnProperty("programName") ||
+    !reqBody.programName === "string" ||
+    reqBody.programName < 1
+  ) {
+    return false;
+  }
+  if (
+    !reqBody.hasOwnProperty("photo") ||
+    !reqBody.photo === "string" ||
+    reqBody.photo < 1
+  ) {
+    return false;
+  }
+  if (
+    !reqBody.hasOwnProperty("startDate") ||
+    !reqBody.startDate === "string" ||
+    reqBody.startDate < 1
+  ) {
+    return false;
+  }
+  if (
+    !reqBody.hasOwnProperty("endDate") ||
+    !reqBody.endDate === "string" ||
+    reqBody.endDate < 1
+  ) {
+    return false;
+  }
+  if (!reqBody.hasOwnProperty("isActive") || !reqBody.isActive === "boolean") {
+    return false;
+  }
+  if (
+    !reqBody.hasOwnProperty("weeklyPracticeObj") ||
+    !reqBody.weeklyPracticeObj === "object" ||
+    Object.keys(reqBody.weeklyPracticeObj) < 1
+  ) {
+    return false;
+  }
+  if (
+    !reqBody.hasOwnProperty("programDaysObj") ||
+    !reqBody.programDaysObj === "object" ||
+    Object.keys(reqBody.programDaysObj) < 1
+  ) {
+    return false;
+  }
+  return true;
+};
+
 const serverCheckCoachInfoIsValid = (reqBody) => {
   if (
     !reqBody.hasOwnProperty("firstName") ||
@@ -109,4 +158,5 @@ module.exports = {
   serverCheckEmailIsValid,
   serverCheckPasswordIsValid,
   serverCheckCoachInfoIsValid,
+  serverCheckProgramInfoIsValid,
 };
