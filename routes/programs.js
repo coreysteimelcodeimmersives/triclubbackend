@@ -4,8 +4,10 @@ const dotenv = require("dotenv");
 const { triclubDb } = require("../mongo");
 const { env } = require("process");
 const { uuid } = require("uuidv4");
+const jwt = require("jsonwebtoken");
 dotenv.config();
 const { serverCheckProgramInfoIsValid } = require("../utils/validation");
+const { findUserByKey } = require("./users");
 
 /* GET all programs. */
 router.get("/get-all-programs", async (req, res) => {
@@ -77,13 +79,34 @@ router.post("/submit-program", async (req, res) => {
     return res.status(200).json({ success: true });
   } catch (error) {
     console.error(error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: "Something went wrong. Please try again.",
-      });
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong. Please try again.",
+    });
   }
 });
+
+// REVIST THIS LATER. FOR NOW WE HAVE DATA AND CAN GET EVERYTHING.
+// router.put("/add-athlete", async (req, res) => {
+//   try {
+//     const token = req.headers.token;
+//     const jwtSecretKey = process.env.REACT_APP_JWT_SECRET_KEY;
+//     if (!token) {
+//       return res
+//         .status(500)
+//         .json({ success: false, message: "no jwt token exists" });
+//     }
+//     const verified = jwt.verify(token, jwtSecretKey);
+//     const userObj = await findUserByKey("uid", verified.userId);
+//     if (!userObj.success) {
+//       res.status(406).json({
+//         success: false,
+//         message: "We did not find your account.",
+//       });
+//       return;
+//     }
+//     const user = userObj.user;
+//   } catch (error) {}
+// });
 
 module.exports = router;
