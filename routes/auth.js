@@ -353,6 +353,7 @@ router.put("/reset-password", async (req, res) => {
   }
 });
 
+// NOT SURE WHAT THIS IS?
 // router.get("/auth/validate-token", (req, res) => {
 //   const tokenHeaderKey = process.env.REACT_APP_TOKEN_HEADER_KEY;
 //   const jwtSecretKey = process.env.REACT_APP_JWT_SECRET_KEY;
