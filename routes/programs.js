@@ -86,6 +86,26 @@ router.post("/submit-program", async (req, res) => {
   }
 });
 
+
+router.post("/edit-program", async (req, res) => {
+  try {
+    const collection = await triclubDb().collection("programs");
+    const programData = req.body.programData;
+    const uid = req.body.uid;
+    const program = { ...programData, uid: uid };
+    await collection.updateOne(
+      { uid: uid },
+      {
+        $set: program,
+      }
+    );
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: error });
+  }
+});
+
 // REVIST THIS LATER. FOR NOW WE HAVE DATA AND CAN GET EVERYTHING.
 // router.put("/add-athlete", async (req, res) => {
 //   try {
@@ -108,5 +128,6 @@ router.post("/submit-program", async (req, res) => {
 //     const user = userObj.user;
 //   } catch (error) {}
 // });
+
 
 module.exports = router;
