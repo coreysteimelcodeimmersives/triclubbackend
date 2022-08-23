@@ -115,16 +115,26 @@ router.put("/purchase-program", async (req, res) => {
       return;
     }
     const user = userObj.user;
-    let userChildrenArr = user.children;
+    let userChildrenArr = [];
     const child = userInfo.child;
-    if (
-      !userChildrenArr.some(
-        (someChild) => someChild.firstNameChild === child.firstNameChild
-      )
-    ) {
+    if (user.children) {
+      userChildrenArr = [...user.children];
+      if (
+        !userChildrenArr.some(
+          (someChild) => someChild.firstNameChild === child.firstNameChild
+        )
+      ) {
+        userChildrenArr = [...userChildrenArr, child];
+      }
+    } else {
       userChildrenArr = [...userChildrenArr, child];
     }
-    let userPrograms = JSON.parse(JSON.stringify(user.progams));
+
+    let userPrograms = {};
+    if (user.progams) {
+      userPrograms = JSON.parse(JSON.stringify(user.progams));
+    }
+
     console.log("user info", userPrograms);
     const newPrograms = {
       ...userPrograms,
